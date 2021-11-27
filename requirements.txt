@@ -1,0 +1,4 @@
+imagehash
+Pillow
+pynput
+schedule
