@@ -6,7 +6,9 @@ import PIL.Image
 import PIL.ImageGrab
 import pynput
 import random
+import re
 import schedule
+import subprocess
 import time
 
 
@@ -33,11 +35,6 @@ mouse_points = []
 global user_last_active
 user_last_active = 0
 
-# Load the image we use to check if the user is typing
-chat_indicator = PIL.Image.open("chat_indicator.png")
-# Calculate its hash
-chat_indicator_hash = imagehash.average_hash(chat_indicator)
-
 
 # Sends a desktop notification
 def notify(text):
@@ -45,10 +42,38 @@ def notify(text):
 	os.system(f"notify-send --expire-time={notification_duration} antiafk.py \"{text}\"")
 
 
+# Returns the bounding box and chat indicator hash to be used for the game
+# This is lazy and inefficient code
+def getGameData():
+	# Detect what game we're on
+	window_title = subprocess.check_output("xdotool getactivewindow getwindowname", shell=True).decode().strip()
+	games = [
+			{
+				"name": "pony.town",
+				"regex": re.compile("^Pony Town.*"),
+				# 19x16 pixels
+				"bbox": (473, 1048, 492, 1064),
+				"chat_indicator_image": PIL.Image.open("pony.town_chat_indicator.png")
+			},
+			{
+				"name": "ashes.town",
+				"regex": re.compile("^Ashes Town.*"),
+				# 19x16 pixels: x+5, y-1 from pony.town
+				"bbox": (478, 1047, 497, 1063),
+				"chat_indicator_image": PIL.Image.open("ashes.town_chat_indicator.png")
+			}
+	]
+	for game in games:
+		if game["regex"].match(window_title):
+			chat_indicator_hash = imagehash.average_hash(game["chat_indicator_image"])
+			return game["bbox"], chat_indicator_hash
+	raise RuntimeError(f"Unknown game window title: {window_title}")
+
+
 # Function to check whether the user has the textbox open
 def user_typing():
-	# 19x16 pixels
-	image = PIL.ImageGrab.grab(bbox=(473, 1048, 492, 1064))
+	bounding_box, chat_indicator_hash = getGameData()
+	image = PIL.ImageGrab.grab(bbox=bounding_box)
 	#image.save("capture.png")
 	capture_hash = imagehash.average_hash(image)
 	difference = chat_indicator_hash - capture_hash
@@ -129,8 +154,8 @@ def main():
 		try:
 			schedule.run_pending()
 			time.sleep(1)
-		except KeyboardInterrupt:
-			print("\n\nShutting down...")
+		except (KeyboardInterrupt, RuntimeError) as ex:
+			print(f"\n\nShutting down due to {type(ex).__name__}: {ex}")
 
 			# Cancel all jobs
 			print("Clearing the schedule...")
