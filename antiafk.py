@@ -37,9 +37,10 @@ user_last_active = 0
 
 
 # Sends a desktop notification
-def notify(text):
-	print(text)
-	os.system(f"notify-send --expire-time={notification_duration} antiafk.py \"{text}\"")
+def notify(text, duration=notification_duration, log=True):
+	if log:
+		print(text)
+	os.system(f"notify-send --expire-time={duration} antiafk.py \"{text}\"")
 
 
 # Returns the bounding box and chat indicator hash to be used for the game
@@ -77,9 +78,9 @@ def user_typing():
 	#image.save("capture.png")
 	capture_hash = imagehash.average_hash(image)
 	difference = chat_indicator_hash - capture_hash
-	#print(f"capture_hash: {capture_hash}")
-	#print(f"chat_indicator_hash: {chat_indicator_hash}")
-	#print(f"difference: {difference}")
+	#print(f"[user_typing] capture_hash: {capture_hash}")
+	#print(f"[user_typing] chat_indicator_hash: {chat_indicator_hash}")
+	print(f"[user_typing] difference: {difference}")
 	return difference == 0
 
 
@@ -99,7 +100,7 @@ def on_mouse_move(x, y):
 	global automating_mouse
 	global user_last_active
 	if automating_mouse:
-		print(f"Script moved mouse to {x}, {y} (ignoring mouse movement)")
+		print(f"[on_mouse_move] Script moved mouse to {x}, {y} (ignoring mouse movement)")
 	else:
 		mouse_points.append((x, y))
 		# If the user has 100ms of activity, update the last active epoch
@@ -107,7 +108,7 @@ def on_mouse_move(x, y):
 			now = time.time()
 			# If the user is currently considered active, don't log the fact that we're updating the epoch
 			if not user_considered_active():
-				print(f"[{now}] User activity epoch updated")
+				print(f"[on_mouse_move] User activity epoch updated: {now}")
 			user_last_active = now
 
 
@@ -117,7 +118,7 @@ def warning_timer(caller, execution_grace):
 	for i in range(execution_grace):
 		remaining = execution_grace - i
 		if remaining <= 5:
-			notify(f"Returning to {caller} in {remaining} seconds...")
+			notify(f"Returning to {caller} in {remaining} seconds...", duration=1, log=False)
 		time.sleep(1)
 
 
@@ -128,11 +129,9 @@ def headturn():
 	execution_grace = active_execution_grace if user_considered_active() else inactive_execution_grace
 	warning_timer("headturn()", execution_grace)
 	keypress_duration = random.randint(20, 100)
-	print(f"headturn() using keypress duration of {keypress_duration} ms")
 	interkey_delay = random.randint(100, 200)
-	print(f"headturn() using inter-key delay of {interkey_delay} ms")
+	print(f"[headturn] keypress duration: {keypress_duration} ms, inter-key delay {interkey_delay} ms\n")
 	os.system(f"xdotool key --clearmodifiers --delay {keypress_duration} --repeat 2 --repeat-delay {interkey_delay} h")
-	print("headturn() done.\n")
 
 
 def main():
@@ -155,17 +154,17 @@ def main():
 			schedule.run_pending()
 			time.sleep(1)
 		except (KeyboardInterrupt, RuntimeError) as ex:
-			print(f"\n\nShutting down due to {type(ex).__name__}: {ex}")
+			print(f"\n\n[main] Shutting down due to {type(ex).__name__}: {ex}")
 
 			# Cancel all jobs
-			print("Clearing the schedule...")
+			print("[main] Clearing the schedule...")
 			schedule.clear()
-			print("Schedule cleared.")
+			print("[main] Schedule cleared.")
 
 			# Shutdown the mouse listener
-			print("Shutting down the mouse listener (you may need to move your mouse)...")
+			print("[main] Shutting down the mouse listener (you may need to move your mouse)...")
 			pynput.mouse.Listener.stop(listener)
-			print("Mouse listener shut down.")
+			print("[main] Mouse listener shut down.")
 
 			# Exit
 			return
