@@ -51,7 +51,7 @@ def getGameData():
 	games = [
 			{
 				"name": "pony.town",
-				"regex": re.compile("^Pony Town.*"),
+				"regex": re.compile("^. Pony Town.*"),
 				# 19x16 pixels
 				"bbox": (473, 1048, 492, 1064),
 				"chat_indicator_image": PIL.Image.open("pony.town_chat_indicator.png")
