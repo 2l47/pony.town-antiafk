@@ -4,7 +4,7 @@
 
 This is an anti-AFK script for the game [Pony Town](https://pony.town/) and its derivatives.
 
-As of now, it has only been tested on Pony Town and [Ashes Town](https://ashes.town/).
+As of now, it has only been tested on [Pony Town](https://pony.town/) and [Ashes Town](https://ashes.town/).
 
 ### Behavior
 
